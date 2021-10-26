@@ -1,6 +1,6 @@
 # Regularized Self-Labeling
 
-This repository provides the code for the paper "Improved Regularization and Robustness for Fine-tuning in Neural Networks" accepted in NeurIPS 2021.
+This repository provides the implementation for the paper "Improved Regularization and Robustness for Fine-tuning in Neural Networks" accepted in NeurIPS 2021.
 
 We propose an algorithm that incorporates regularized fine-tuning and self-training for improved regularization and robustness.  In the algorithm:
 
@@ -18,9 +18,9 @@ We propose an algorithm that incorporates regularized fine-tuning and self-train
 
 ### Usage
 
-Our algorithm are based on layer-wise distance constraint and self lable correction and removal. Our algorithm has achieved the significant improvement upon the previous results.
+Our algorithm is based on layer-wise distance constraint and self label correction and removal. Our algorithm has achieved s significant improvement upon the previous results.
 
-Test accuracy on MIT-Indoor dataset with independent label noise: 
+Test accuracies on MIT-Indoor dataset with independent label noises: 
 
 |   Method    |     Noise = 20%      |     Noise = 40%      |     Noise = 60%      |     Noise = 80%      |
 | :---------: | :------------------: | :------------------: | :------------------: | :------------------: |
@@ -65,3 +65,7 @@ We use seven image datasets in our paper. We list the link for downloading these
 - [MIT-Indoor](http://web.mit.edu/torralba/www/indoor.html): download and extract into `./data/Indoor/`
 
 Our code automatically handles the split of the datasets. 
+
+### Acknowledgment
+
+Some of the code was adapted from the [mars-finetuning](https://github.com/henrygouk/mars-finetuning) and [WS-DAN.PyTorch](https://github.com/GuYuc/WS-DAN.PyTorch). We thank all authors for providing these available online.
