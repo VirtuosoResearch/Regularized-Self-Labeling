@@ -7,7 +7,7 @@ In this work, we propose a regularized self-labeling approach that combines regu
 - First, we encode ***layer-wise regularization*** to penalize the model weights at different layers of the neural net.
 - Second, we add ***self-labeling*** that relabels data points based on current neural net's belief and reweights data points whose confidence is low.
 
-![](./figures/main_figure.pdf)
+![An illustration of our approach](./figures/main_figure.pdf)
 
 ### Requirements
 
