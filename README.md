@@ -1,4 +1,4 @@
-# Regularized Self-Labeling
+### Overview
 
 This repository provides the implementation for the paper "Improved Regularization and Robustness for Fine-tuning in Neural Networks", which will be presented as a poster paper in NeurIPS'21.
 
