@@ -1,11 +1,11 @@
 # Regularized Self-Labeling
 
-This repository provides the implementation for the paper "Improved Regularization and Robustness for Fine-tuning in Neural Networks" accepted in NeurIPS 2021.
+This repository provides the implementation for the paper "Improved Regularization and Robustness for Fine-tuning in Neural Networks", which will be presented as a poster paper in NeurIPS'21.
 
-We propose an algorithm that incorporates regularized fine-tuning and self-training for improved regularization and robustness.  In the algorithm:
+In this work, we propose a regularized self-labeling approach that combines regularization and self-training methods for improving the generalization and robustness properties of fine-tuning.  Our approach includes two components:
 
-- First, we encode ***layer-wise distance constraints*** to regularize the model weights at different levels. Compared to (vanilla) fine-tuning, our algorithm reduces the gap between the training and test accuracy, thus alleviating over-fitting.
-- Second, we add a ***self-labeling mechanism*** that corrects and down weights "noisy labels" based on the neural network's predictions.
+- First, we encode ***layer-wise regularization*** to penalize the model weights at different layers of the neural net.
+- Second, we add ***self-labeling*** that relabels data points based on current neural net's belief and reweights data points whose confidence is low.
 
 ![](./figures/main_figure.pdf)
 
@@ -18,9 +18,9 @@ We propose an algorithm that incorporates regularized fine-tuning and self-train
 
 ### Usage
 
-Our algorithm is based on layer-wise distance constraint and self label correction and removal. Our algorithm has achieved s significant improvement upon the previous results.
+Our algorithm is based on layer-wise regularization and self label-correction and label-weighting.
 
-Test accuracies on MIT-Indoor dataset with independent label noises: 
+As an example, here are the test accuracy results on the Indoor dataset with independent label noise:
 
 |   Method    |     Noise = 20%      |     Noise = 40%      |     Noise = 60%      |     Noise = 80%      |
 | :---------: | :------------------: | :------------------: | :------------------: | :------------------: |
@@ -64,8 +64,12 @@ We use seven image datasets in our paper. We list the link for downloading these
 - [Flowers](https://www.robots.ox.ac.uk/~vgg/data/flowers/102/): download and extract into `./data/flowers/`
 - [MIT-Indoor](http://web.mit.edu/torralba/www/indoor.html): download and extract into `./data/Indoor/`
 
-Our code automatically handles the split of the datasets. 
+Our code automatically handles the split of the datasets.
+
+### Citation
+
+If you find this repository useful, consider citing our work titled above.
 
 ### Acknowledgment
 
-Some of the code was adapted from the [mars-finetuning](https://github.com/henrygouk/mars-finetuning) and [WS-DAN.PyTorch](https://github.com/GuYuc/WS-DAN.PyTorch). We thank all authors for providing these available online.
+Thanks to the authors of [mars-finetuning](https://github.com/henrygouk/mars-finetuning) and [WS-DAN.PyTorch](https://github.com/GuYuc/WS-DAN.PyTorch) for providing their implementation publicly available.
