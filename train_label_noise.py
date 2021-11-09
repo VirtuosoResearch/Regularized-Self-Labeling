@@ -12,6 +12,7 @@ from parse_config import ConfigParser
 from trainer import ConstraintTrainer, LossReweightConstraintTrainer
 from utils import prepare_device, deep_copy
 from data_loader.random_noise import label_noise, noisy_labeler
+from model.modeling_vit import VisionTransformer, CONFIGS
 import time
 
 def main(config, args):
@@ -67,7 +68,12 @@ def main(config, args):
         len(test_data_loader.sampler)))
 
     # build model architecture, then print to console
-    model = config.init_obj('arch', module_arch)
+    if args.is_vit:
+        vit_config = CONFIGS[args.vit_type]
+        model = config.init_obj('arch', module_arch, config = vit_config, img_size = args.img_size, zero_head=True)
+        model.load_from(np.load(args.vit_pretrained_dir))
+    else:
+        model = config.init_obj('arch', module_arch)
     logger.info(model)
 
     # prepare for (multi-device) GPU training
@@ -167,6 +173,14 @@ if __name__ == '__main__':
     args.add_argument('--noisy_labeler', action="store_true")
     args.add_argument('--noisy_labeler_dir', type=str, \
         default="./saved_finetune_models/ResNet18_IndoorDataLoader_none_none_1.0000_1.0000/model_epoch_8.pth")
+    args.add_argument('--is_vit', action="store_true")
+    args.add_argument('--img_size', type=int, default=224)
+    args.add_argument("--vit_type", choices=["ViT-B_16", "ViT-B_32", "ViT-L_16",
+                                                 "ViT-L_32", "ViT-H_14", "R50-ViT-B_16"],
+                        default="ViT-B_16",
+                        help="Which variant to use.")
+    args.add_argument("--vit_pretrained_dir", type=str, default="checkpoints/ViT-B_16.npz",
+                        help="Where to search for pretrained ViT models.")
 
     args.add_argument('--train_correct_label', action="store_true")
     args.add_argument('--reweight_epoch', type=int, default=5)

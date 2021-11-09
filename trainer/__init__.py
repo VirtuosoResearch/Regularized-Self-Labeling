@@ -1,3 +1,2 @@
 from .base_trainer import Trainer
-from .constraint_trainer import ConstraintTrainer, TrainerSaveEveryEpoch, \
-    LossReweightConstraintTrainer, HardReweightConstraintTrainer
+from .constraint_trainer import ConstraintTrainer, LossReweightConstraintTrainer

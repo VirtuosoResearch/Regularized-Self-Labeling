@@ -6,7 +6,7 @@ from .base_trainer import Trainer
 import numpy as np
 from utils.constraint import LInfLipschitzConstraint, FrobeniusConstraint, add_penalty, \
     LInfLipschitzConstraintRatio, FrobeniusConstraintRatio
-
+from model.modeling_vit import VisionTransformer
 import torch.nn.functional as F
 
 class ConstraintTrainer(Trainer):
@@ -76,6 +76,24 @@ class ConstraintTrainer(Trainer):
                 self.constraints.append(
                     FrobeniusConstraintRatio(type(self.model), lambda_extractor, 
                     state_dict = state_dict, excluding_key = "pred_head")
+                )
+                self.constraints.append(
+                    FrobeniusConstraint(type(self.model), lambda_pred_head, including_key = "pred_head")
+                )
+        elif type(self.model) == VisionTransformer:
+            if norm == "inf-op":
+                self.constraints.append(
+                    LInfLipschitzConstraint(type(self.model), lambda_extractor, 
+                    state_dict = state_dict, excluding_key = "pred_head", including_key="encoder")
+                )
+                self.constraints.append(
+                    LInfLipschitzConstraint(type(self.model), lambda_pred_head, 
+                    including_key = "pred_head")
+                )
+            elif norm == "frob":
+                self.constraints.append(
+                    FrobeniusConstraint(type(self.model), lambda_extractor, 
+                    state_dict = state_dict, excluding_key = "pred_head", including_key="encoder")
                 )
                 self.constraints.append(
                     FrobeniusConstraint(type(self.model), lambda_pred_head, including_key = "pred_head")
@@ -257,6 +275,24 @@ class LossReweightConstraintTrainer(Trainer):
                 self.constraints.append(
                     FrobeniusConstraint(type(self.model), lambda_pred_head, including_key = "pred_head")
                 )
+        elif type(self.model) == VisionTransformer:
+            if norm == "inf-op":
+                self.constraints.append(
+                    LInfLipschitzConstraint(type(self.model), lambda_extractor, 
+                    state_dict = state_dict, excluding_key = "pred_head", including_key="encoder")
+                )
+                self.constraints.append(
+                    LInfLipschitzConstraint(type(self.model), lambda_pred_head, 
+                    including_key = "pred_head")
+                )
+            elif norm == "frob":
+                self.constraints.append(
+                    FrobeniusConstraint(type(self.model), lambda_extractor, 
+                    state_dict = state_dict, excluding_key = "pred_head", including_key="encoder")
+                )
+                self.constraints.append(
+                    FrobeniusConstraint(type(self.model), lambda_pred_head, including_key = "pred_head")
+                )
         else:
             # is not use_ratio, then both the lambda_extractor & lambda_pred_head is absolute value; 
             # here we could use layer-wise distance
@@ -350,6 +386,7 @@ class LossReweightConstraintTrainer(Trainer):
             
             if epoch >= self.correct_epoch:
                 change_index.append(self._correct_label(output, target, index))
+
             if epoch < self.adaptive_epoch:
                 loss = self.criterion(output, self.labels[index])
             else:
@@ -449,16 +486,15 @@ class LossReweightConstraintTrainer(Trainer):
             if best:
                 self._save_checkpoint(epoch)
 
-class HardReweightConstraintTrainer(Trainer):
+class LossReweightConstraintTrainer(Trainer):
 
     def __init__(self, model, criterion, metric_ftns, optimizer, config, device, 
         train_data_loader, valid_data_loader, test_data_loader, lr_scheduler, checkpoint_dir, 
-        reweight_epoch=5, correct_epoch=10, reweight_thres = 0.4, correct_thres = 0.9, 
-        down_weight = 0.1, train_labels_old = None):
+        adaptive_epoch=5, correct_epoch=10, train_labels_old = None, correct_thres = 0.9, temp = 1):
         super().__init__(model, criterion, metric_ftns, optimizer, config, device, 
             train_data_loader, valid_data_loader=valid_data_loader, test_data_loader=test_data_loader, 
             lr_scheduler=lr_scheduler, checkpoint_dir=checkpoint_dir)
-        self.reweight_epoch = reweight_epoch
+        self.adaptive_epoch = adaptive_epoch
         self.correct_epoch = correct_epoch
         if train_labels_old is not None:
             self.train_labels_old = torch.tensor(train_labels_old).to(device)
@@ -467,10 +503,9 @@ class HardReweightConstraintTrainer(Trainer):
         # Build one-hot labels 
         labels = train_data_loader.dataset.labels
         self.labels = torch.tensor(labels, dtype=torch.long).to(device)
-
-        self.correct_thres = correct_thres
-        self.reweight_thres = reweight_thres
-        self.down_weight = down_weight
+        self.thres = correct_thres
+        self.temp = temp
+        self.init_temp = temp
 
         self.penalty = []
         self.constraints = []
@@ -537,6 +572,24 @@ class HardReweightConstraintTrainer(Trainer):
                 self.constraints.append(
                     FrobeniusConstraint(type(self.model), lambda_pred_head, including_key = "pred_head")
                 )
+        elif type(self.model) == VisionTransformer:
+            if norm == "inf-op":
+                self.constraints.append(
+                    LInfLipschitzConstraint(type(self.model), lambda_extractor, 
+                    state_dict = state_dict, excluding_key = "pred_head", including_key="encoder")
+                )
+                self.constraints.append(
+                    LInfLipschitzConstraint(type(self.model), lambda_pred_head, 
+                    including_key = "pred_head")
+                )
+            elif norm == "frob":
+                self.constraints.append(
+                    FrobeniusConstraint(type(self.model), lambda_extractor, 
+                    state_dict = state_dict, excluding_key = "pred_head", including_key="encoder")
+                )
+                self.constraints.append(
+                    FrobeniusConstraint(type(self.model), lambda_pred_head, including_key = "pred_head")
+                )
         else:
             # is not use_ratio, then both the lambda_extractor & lambda_pred_head is absolute value; 
             # here we could use layer-wise distance
@@ -588,14 +641,14 @@ class HardReweightConstraintTrainer(Trainer):
         max_prob, max_indices = probs.max(dim = 1)
         # If max(prob) > threshold and argmax(prob) != target
         #   means the model is confident, so we change the label
-        mask = (max_prob > self.correct_thres) * (max_indices != self.labels[index])
+        mask = (max_prob > self.thres) * (max_indices != self.labels[index])
         mask = torch.nonzero(mask, as_tuple=True)
 
         change_index = index[mask]
         self.labels[change_index] = max_indices[mask]
         return change_index
 
-    def _adaptive_training_loss(self, output, target, index):
+    def _adaptive_training_loss(self, output, target, index, temp = 1):
         '''
         output: log_softmax outputs
         target: labels 
@@ -604,15 +657,8 @@ class HardReweightConstraintTrainer(Trainer):
         # compute cross entropy loss, without reductionlidongyue
         loss = F.nll_loss(output, self.labels[index], reduction="none")
 
-        # down weight samples if confident < reweight_thres
-        probs = torch.exp(output.detach())
-        max_prob, max_indices = probs.max(dim = 1)
-        weights = torch.ones_like(max_prob, device=self.device)
-        
-        mask = (max_prob < self.reweight_thres) # * (max_indices != self.labels[index])
-        mask = torch.nonzero(mask, as_tuple=True)
-        weights[mask] = self.down_weight
-        weights = weights/weights.sum()
+        # obtain weights = normalized(p_y)
+        weights = F.softmax(-loss.detach()/temp, dim=0)
 
         # sample weighted mean
         loss = (loss * weights).sum()
@@ -637,10 +683,11 @@ class HardReweightConstraintTrainer(Trainer):
             
             if epoch >= self.correct_epoch:
                 change_index.append(self._correct_label(output, target, index))
-            if epoch < self.reweight_epoch:
+
+            if epoch < self.adaptive_epoch:
                 loss = self.criterion(output, self.labels[index])
             else:
-                loss = self._adaptive_training_loss(output, target, index)
+                loss = self._adaptive_training_loss(output, target, index, temp=self.temp)
             
             """Apply Penalties"""
             for penalty in self.penalty:
@@ -677,6 +724,9 @@ class HardReweightConstraintTrainer(Trainer):
         if self.lr_scheduler is not None:
             self.lr_scheduler.step()
 
+        # Schedule the temperature
+        if epoch > self.adaptive_epoch:
+            self.temp = max(0.5, np.math.exp(-0.1*(epoch - self.adaptive_epoch))) * self.init_temp
         if change_index:
             change_index = torch.cat(change_index)
             change_index, _ = torch.sort(change_index)
@@ -732,72 +782,3 @@ class HardReweightConstraintTrainer(Trainer):
 
             if best:
                 self._save_checkpoint(epoch)
-
-class TrainerSaveEveryEpoch(ConstraintTrainer):
-
-    def __init__(self, model, criterion, metric_ftns, optimizer, config, device, train_data_loader, valid_data_loader, test_data_loader, lr_scheduler, checkpoint_dir):
-        super(TrainerSaveEveryEpoch, self).__init__(model, criterion, metric_ftns, optimizer, config, device, train_data_loader, valid_data_loader, test_data_loader, lr_scheduler, checkpoint_dir)
-
-    def train(self):
-        """
-        Full training logic
-        """
-        not_improved_count = 0
-        for epoch in range(self.start_epoch, self.epochs + 1):
-            result = self._train_epoch(epoch)
-
-            # save logged informations into log dict
-            log = {'epoch': epoch}
-            log.update(result)
-
-            # print logged informations to the screen
-            for key, value in log.items():
-                self.logger.info('    {:15s}: {}'.format(str(key), value))
-
-            # evaluate model performance according to configured metric, save best checkpoint as model_best
-            best = False
-            if self.mnt_mode != 'off':
-                try:
-                    # check whether model performance improved or not, according to specified metric(mnt_metric)
-                    improved = (self.mnt_mode == 'min' and log[self.mnt_metric] <= self.mnt_best) or \
-                               (self.mnt_mode == 'max' and log[self.mnt_metric] >= self.mnt_best)
-                except KeyError:
-                    self.logger.warning("Warning: Metric '{}' is not found. "
-                                        "Model performance monitoring is disabled.".format(self.mnt_metric))
-                    self.mnt_mode = 'off'
-                    improved = False
-
-                if improved:
-                    self.mnt_best = log[self.mnt_metric]
-                    not_improved_count = 0
-                    best = True
-                else:
-                    not_improved_count += 1
-
-                if not_improved_count > self.early_stop:
-                    self.logger.info("Validation performance didn\'t improve for {} epochs. "
-                                     "Training stops.".format(self.early_stop))
-                    break
-
-            # Save every epoch
-            self._save_checkpoint(epoch)
-
-    def _save_checkpoint(self, epoch):
-        """
-        Saving checkpoints
-
-        :param epoch: current epoch number
-        :param log: logging information of the epoch
-        :param save_best: if True, rename the saved checkpoint to 'model_best.pth'
-        """
-        arch = type(self.model).__name__
-        state = {
-            'arch': arch,
-            'epoch': epoch,
-            'state_dict': self.model.state_dict(),
-        }
-        self.logger.info("Best checkpoint in epoch {}".format(epoch))
-        
-        best_path = os.path.join(self.checkpoint_dir, f'model_epoch_{epoch}.pth')
-        torch.save(state, best_path)
-        self.logger.info("Saving current best: model_epoch_{}.pth ...".format(epoch))

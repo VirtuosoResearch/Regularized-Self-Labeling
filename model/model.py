@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.linear import Identity
 import torchvision.models as models
+from model.modeling_vit import VisionTransformer
 
 class MnistModel(nn.Module):
     def __init__(self, num_classes=10):
