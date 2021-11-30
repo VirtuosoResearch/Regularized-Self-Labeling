@@ -136,6 +136,20 @@ python train_label_noise.py --config configs/config_constraint_indoor.json \
 
 Please follow the instructions in [ViT-pytorch](https://github.com/jeonsworld/ViT-pytorch) to download the pre-trained models. 
 
+**Fine-tuning ResNet-18 on ChestX-ray14 data set.** 
+
+Run experiments on ChestX-ray14 in `reproduce-chexnet` path:
+
+```python
+cd reproduce-chexnet
+
+python retrain.py --reg_method None --reg_norm None --device 0
+
+python retrain.py --reg_method constraint --reg_norm frob \
+    --reg_extractor 5.728564437344309 --reg_predictor 2.5669480884876905 --scale_factor 1.0340072757925474 \
+    --device 0
+```
+
 ### Citation
 
 If you find this repository useful, consider citing our work titled above.
@@ -147,3 +161,5 @@ Thanks to the authors of the following repositories for providing their implemen
 - [mars-finetuning](https://github.com/henrygouk/mars-finetuning)
 - [WS-DAN.PyTorch](https://github.com/GuYuc/WS-DAN.PyTorch)
 - [ViT-pytorch](https://github.com/jeonsworld/ViT-pytorch)
+
+- [reproduce-chexnet](https://github.com/jrzech/reproduce-chexnet)
