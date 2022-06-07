@@ -152,7 +152,15 @@ python retrain.py --reg_method constraint --reg_norm frob \
 
 ### Citation
 
-If you find this repository useful, consider citing our work titled above.
+If you find this repository useful, please cite our work titled as follows.
+
+@article{li2021improved,
+  title={Improved Regularization and Robustness for Fine-tuning in Neural Networks},
+  author={Li, Dongyue and Zhang, Hongyang},
+  journal={Advances in Neural Information Processing Systems},
+  volume={34},
+  year={2021}
+}
 
 ### Acknowledgment
 
